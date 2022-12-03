@@ -1,61 +1,60 @@
-const http= require('http');
-const fs= require('fs');
+const http = require('http');
 const path = require('path');
+const fs = require("fs");
 
+const server = http.createServer((req, res) => {
 
+    let filePath = path.join(__dirname, 'public', req.url === '/' ? 'index.html' : (req.url === '/api' ? 'db.json' : req.url));
+    let extname = path.extname(filePath);
 
-
-
-
-const server   =http.createServer((req,res) => {
-
-const headers = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "OPTIONS, POST, GET",
-    "Access-Control-Max-Age": 2592000, // 30 days
-    "Content-Type": 'application/json' 
-  };
-
-console.log(req.url)
-if(req.url === '/'){
-    fs.readFile( path.join(__dirname,'public','index.html'),(err,data)=>{
-	
-	
-    if (err) throw err;
-	
-    res.writeHead(200,{ 'Content-Type' : 'text/html'});
-	
-	
-    res.end(data);
+    // based on extention .json Cotnent-Type = application/json
+    // html , css, javascript, json
+    switch (extname) {
+        case '.css':
+            contentType = 'text/css';
+            break;
+        case '.js':
+            contentType = 'text/javascript';
+            break;
+        case '.json':
+            contentType = 'application/json';
+            break;
+        case '.html':
+            contentType = 'text/html';
+            break;
     }
- )
-  
 
-  
-}
+    const headers = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "OPTIONS, POST, GET",
+        "Access-Control-Max-Age": 2592000, // 30 days
+        "Content-Type": contentType 
+      };
 
+    // readthe file
+    fs.readFile(filePath, (err, content) => {
+        // err.code
+        if (err) {
 
-else if(req.url=='/api')
-{
-
-    fs.readFile( path.join(__dirname,'public','db.json'),(err,data)=>{
-	
-	
-        if (err) throw err;
-    
-        res.writeHead(200,headers);
-		
-		
-        res.end(data);
-        })
-
-}
-else{
-
-    res.end("Eror 404")
-}
-
+            if (err.code = 'ENONET') { // file dont exist 
+                // display the 404 page here
+                fs.readFile(path.join(__dirname, 'public', '404.html'), (err, content) => {
+                    res.writeHead(200, { "Content-Type": 'text/html' });
+                    res.end(content, 'utf-8')
+                });
+            }
+            else {
+                res.writeHead(500);
+                res.end(`server error ${err.code}`);
+            }
+        } else {
+            //sucess
+            res.writeHead(200, headers)
+            res.end(content, 'utf-8')
+        }
+    });
 });
 
 const PORT = process.env.PORT || 5959;
-server.listen(PORT,() => console.log(`yay the server is running finally ${PORT}`));
+
+server.listen(PORT, () => console.log(`Great our server is running on port ${PORT} `));
